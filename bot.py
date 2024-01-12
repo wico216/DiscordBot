@@ -1,27 +1,31 @@
 import discord
 from discord.ext import commands
-import config
 import yt_dlp
 import asyncio
 from discord import FFmpegPCMAudio
-import subprocess
 import discord
 from discord.ext import commands
 from discord import FFmpegPCMAudio
-
-
-discord.player
-
+import os
+import discord
 
 # Setup Discord bot with command prefix '!'
 intents = discord.Intents.default()
 intents.messages = True
+intents = discord.Intents.default()
 intents.guilds = True
 intents.message_content = True  # Add this line
-client = commands.Bot(command_prefix='!', intents=intents) #Replace with your desired command prefix for the bot answer
-channel = client.get_channel(config.CHANNEL_ID) #Get channel ID from config.py
-BOT_TOKEN = config.BOT_TOKEN #Get bot token from config.py
 
+client = commands.Bot(command_prefix='!', intents=intents) #Replace with your desired command prefix for the bot answer
+channel_id = os.getenv('CHANNEL_ID') #Get channel ID from config.py
+channel_id = int(channel_id) #Convert channel ID to integer
+music_channel_id = os.getenv('MUSIC_CHANNEL_ID') #Get channel ID from config.py
+music_channel_id = int(music_channel_id) #Convert channel ID to integer
+
+
+channel = client.get_channel(channel_id) #Get channel ID from config.py
+BOT_TOKEN = os.getenv('BOT_TOKEN') #Get bot token from config.py
+MUSIC_CHANNEL_ID = int(music_channel_id)
 # !play <url>: Connects the bot to the voice channel that the command author is in, 
 # downloads the audio from the YouTube video at <url>, and starts playing it in the voice channel.
 
@@ -50,12 +54,12 @@ ffmpeg_options = {
 @client.event
 async def on_ready():
     global channel
-    channel = client.get_channel(config.CHANNEL_ID)
+    channel = client.get_channel(CHANNEL_ID)
     print('Bot is ready.')
     if channel:
         await channel.send('Bot is ready.')
     else:
-        print(f"Channel with ID {config.CHANNEL_ID} not found.")
+        print(f"Channel with ID {CHANNEL_ID} not found.")
     
 # Setup bot to listen for messages in Discord channel
 '''
@@ -94,7 +98,7 @@ async def play_music(ctx):
     if not queue:
         await ctx.send("Queue is empty.")
         return
-    MUSIC_CHANNEL_ID = config.MUSIC_CHANNEL_ID
+    
     voice_channel = discord.utils.get(ctx.guild.voice_channels, id=MUSIC_CHANNEL_ID)
     if voice_channel is None:
         await ctx.send("Music channel not found.")
@@ -214,7 +218,7 @@ async def play(ctx, url):
     url = formats[0]['url']
 
     # Create the audio source without the FFmpeg options
-    asrc = discord.FFmpegPCMAudio(executable=config.FFMPEG_EXECUTABLE_PATH, source=url, 
+    asrc = discord.FFmpegPCMAudio(executable=os.getenv('FFMPEG_EXECUTABLE_PATH'), source=url, 
                                         before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 
                                         options='-vn')
 
@@ -305,4 +309,4 @@ async def stop_error(ctx, error):
 
 
 # Run the bot
-client.run(config.BOT_TOKEN)
+client.run(BOT_TOKEN)

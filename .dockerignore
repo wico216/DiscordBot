@@ -1,4 +1,5 @@
+__pycache__
 config.txt
-config.py
 docker-compose.yml
-.env
+config.py
+.env    
