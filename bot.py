@@ -7,11 +7,6 @@ from discord import FFmpegPCMAudio
 import subprocess
 import discord
 from discord.ext import commands
-from discord import FFmpegPCMAudio
-
-
-discord.player
-
 
 # Setup Discord bot with command prefix '!'
 intents = discord.Intents.default()
@@ -39,11 +34,6 @@ BOT_TOKEN = config.BOT_TOKEN #Get bot token from config.py
 # !viewqueue: Shows the list of songs in the queue.
 # Queue to store the music tracks
 queue = []
-
-ffmpeg_options = {
-    'options': '-vn',
-    "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
-}
 
 
 # Setup bot to chat in Discord channel
@@ -77,7 +67,7 @@ async def on_message(message):
 # Assuming queue is a list that contains the URLs of the songs in the queue
 
 
-@client.command()
+
 async def viewqueue(ctx):
     if not queue:
         await ctx.send("The queue is currently empty.")
@@ -90,71 +80,69 @@ async def viewqueue(ctx):
 
 
 # Function to play music
+
+@client.command()
 async def play_music(ctx):
     if not queue:
         await ctx.send("Queue is empty.")
         return
-    MUSIC_CHANNEL_ID = config.MUSIC_CHANNEL_ID
-    voice_channel = discord.utils.get(ctx.guild.voice_channels, id=MUSIC_CHANNEL_ID)
-    if voice_channel is None:
-        await ctx.send("Music channel not found.")
+
+    if ctx.author.voice is None:
+        await ctx.send("You're not connected to a voice channel!")
         return
 
-    voice_client = await voice_channel.connect()
-    
+    # Check if the bot is already connected to a voice channel
+    voice_client = discord.utils.get(client.voice_clients, guild=ctx.guild)
+    if voice_client is None:
+        voice_client = await ctx.author.voice.channel.connect()
 
-    while queue:
-        track = queue[0]
-        source = await discord.FFmpegOpusAudio.from_probe(track['url'])
-        voice_client.play(source)
-        await ctx.send(f"Now playing: {track['title']}")
+    for track in queue:
+        try:
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'outtmpl': 'downloads/%(title)s.%(ext)s',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'webm',
+                    'preferredquality': '192',
+                }],
+                'prefer_ffmpeg': True,
+                'keepvideo': False
+            }
 
-        # Wait for the track to finish playing
-        while voice_client.is_playing():
-            await asyncio.sleep(1)
+            with yt_dlp.YoutubeDL(ydl_opts) as ytdl:
+                info = ytdl.extract_info(track['url'], download=False)
+                formats = [f for f in info['formats'] if 'acodec' in f and f['acodec'] != 'none']
+                if not formats:
+                     await ctx.send("No audio formats found for this video.")
+                     return
+                url = formats[0]['url']
 
-        # Remove the track from the queue
-        queue.pop(0)
+            source = discord.FFmpegPCMAudio(executable=config.FFMPEG_EXECUTABLE_PATH, source=url, 
+                                            before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 
+                                            options='-vn')
+            voice_client.play(source, after=lambda e: print('Player error: %s' % e) if e else print('Playback finished successfully.'))
+            await ctx.send(f"Now playing: {track['title']}")
 
+            # Wait for the track to finish playing
+            while voice_client.is_playing():
+                await asyncio.sleep(1)
+
+        except Exception as e:
+            await ctx.send(f"An error occurred while playing {track['title']}: {e}")
+            print(f"An error occurred: {e}")
+
+    # Clear the queue and disconnect after playing all songs
+    queue.clear()
     await voice_client.disconnect()
 
 # Command to add a track to the queue
-"""
+
 @client.command()
-async def play(ctx, url):
+async def add(ctx, url):
     ydl_opts = {
         'format': 'bestaudio/best',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
-    }
-
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-        title = info['title']
-        url = info['url']
-
-    track = {'title': title, 'url': url}
-    queue.append(track)
-
-    await ctx.send(f"Added to queue: {title}")
-    
-"""
-""""
-@client.command()
-async def play(ctx, url):
-    channel = ctx.message.author.voice.channel
-    if channel is None:
-        await ctx.send("You are not in a voice channel.")
-        return
-
-    voice_channel = await channel.connect()
-
-    ydl_opts = {
-        'format': 'mp4',
-        'outtmpl': 'C:/Users/wico2/OneDrive/Documents/DiscordBot/%(title)s.%(ext)s',
+        'outtmpl': 'downloads/%(title)s.%(ext)s',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'webm',
@@ -163,35 +151,28 @@ async def play(ctx, url):
         'prefer_ffmpeg': True,
         'keepvideo': False
     }
+
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
-    if 'formats' not in info:
-        await ctx.send("Invalid YouTube URL.")
-        return
-    url2 = info['formats'][0]['url']
-    log_file = open("ffmpeg_log.txt", "a")  # Open a log file in append mode
-    try:
-        voice_channel.play(FFmpegPCMAudio(executable="FFMPEG_EXECUTABLE_PATH", source=url, 
-                                        before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 
-                                        options='-vn'))
-        await ctx.send('Playing...')
-    except Exception as e:
-        log_file.write(str(e))
+        title = info['title']
+        url = info['webpage_url']
 
-    log_file.close()
-"""
+    # Add the track to the queue
+    queue.append({'title': title, 'url': url})
+
+    await ctx.send(f"Added to queue: {title}")
+    
 @client.command()
 async def play(ctx, url):
     if ctx.author.voice is None:
         await ctx.send("You're not connected to a voice channel!")
         return
 
-    voice_channel = ctx.author.voice.channel
-    voice_client = await voice_channel.connect()
+    voice_client = await ctx.author.voice.channel.connect()
 
     ydl_opts = {
         'format': 'bestaudio/best',
-        'outtmpl': 'C:/Users/wico2/OneDrive/Documents/DiscordBot/%(title)s.%(ext)s',
+        'outtmpl': 'downloads/%(title)s.%(ext)s',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'webm',
@@ -214,12 +195,12 @@ async def play(ctx, url):
     url = formats[0]['url']
 
     # Create the audio source without the FFmpeg options
-    asrc = discord.FFmpegPCMAudio(executable=config.FFMPEG_EXECUTABLE_PATH, source=url, 
+    source = discord.FFmpegPCMAudio(executable=config.FFMPEG_EXECUTABLE_PATH, source=url, 
                                         before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 
                                         options='-vn')
 
 
-    voice_client.play(asrc, after=lambda e: print('Player error: %s' % e) if e else print('Playback finished successfully.'))
+    voice_client.play(source, after=lambda e: print('Player error: %s' % e) if e else print('Playback finished successfully.'))
         
     while voice_client.is_playing():
         await asyncio.sleep(1)
