@@ -1,11 +1,16 @@
 import discord
 from discord.ext import commands
 import config
-import youtube_dl
+import yt_dlp
 import asyncio
+from discord import FFmpegPCMAudio
+import subprocess
+import discord
+from discord.ext import commands
 from discord import FFmpegPCMAudio
 
 
+discord.player
 
 
 # Setup Discord bot with command prefix '!'
@@ -34,6 +39,11 @@ BOT_TOKEN = config.BOT_TOKEN #Get bot token from config.py
 # !viewqueue: Shows the list of songs in the queue.
 # Queue to store the music tracks
 queue = []
+
+ffmpeg_options = {
+    'options': '-vn',
+    "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
+}
 
 
 # Setup bot to chat in Discord channel
@@ -132,7 +142,7 @@ async def play(ctx, url):
     await ctx.send(f"Added to queue: {title}")
     
 """
-
+""""
 @client.command()
 async def play(ctx, url):
     channel = ctx.message.author.voice.channel
@@ -142,15 +152,81 @@ async def play(ctx, url):
 
     voice_channel = await channel.connect()
 
-    ydl_opts = {'format': 'bestaudio'}
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+    ydl_opts = {
+        'format': 'mp4',
+        'outtmpl': 'C:/Users/wico2/OneDrive/Documents/DiscordBot/%(title)s.%(ext)s',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'webm',
+            'preferredquality': '192',
+        }],
+        'prefer_ffmpeg': True,
+        'keepvideo': False
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
-        if 'formats' not in info:
-            await ctx.send("Invalid YouTube URL.")
-            return
-        url2 = info['formats'][0]['url']
-        voice_channel.play(FFmpegPCMAudio(url2))
+    if 'formats' not in info:
+        await ctx.send("Invalid YouTube URL.")
+        return
+    url2 = info['formats'][0]['url']
+    log_file = open("ffmpeg_log.txt", "a")  # Open a log file in append mode
+    try:
+        voice_channel.play(FFmpegPCMAudio(executable="FFMPEG_EXECUTABLE_PATH", source=url, 
+                                        before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 
+                                        options='-vn'))
         await ctx.send('Playing...')
+    except Exception as e:
+        log_file.write(str(e))
+
+    log_file.close()
+"""
+@client.command()
+async def play(ctx, url):
+    if ctx.author.voice is None:
+        await ctx.send("You're not connected to a voice channel!")
+        return
+
+    voice_channel = ctx.author.voice.channel
+    voice_client = await voice_channel.connect()
+
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': 'C:/Users/wico2/OneDrive/Documents/DiscordBot/%(title)s.%(ext)s',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'webm',
+            'preferredquality': '192',
+        }],
+        'prefer_ffmpeg': True,
+        'keepvideo': False
+    }
+
+    ytdl = yt_dlp.YoutubeDL(ydl_opts)
+    info = ytdl.extract_info(url, download=False)
+
+    # Filter the formats to find one that contains audio
+    formats = [f for f in info['formats'] if 'acodec' in f and f['acodec'] != 'none']
+    if not formats:
+        await ctx.send("No audio formats found for this video.")
+        return
+
+    # Use the URL of the first audio format
+    url = formats[0]['url']
+
+    # Create the audio source without the FFmpeg options
+    asrc = discord.FFmpegPCMAudio(executable=config.FFMPEG_EXECUTABLE_PATH, source=url, 
+                                        before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 
+                                        options='-vn')
+
+
+    voice_client.play(asrc, after=lambda e: print('Player error: %s' % e) if e else print('Playback finished successfully.'))
+        
+    while voice_client.is_playing():
+        await asyncio.sleep(1)
+
+    # Disconnect from the voice channel
+    await voice_client.disconnect()
+
 
 # Command to pause the currently playing track
 @client.command()
