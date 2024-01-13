@@ -47,26 +47,6 @@ async def on_ready():
     else:
         print(f"Channel with ID {config.CHANNEL_ID} not found.")
     
-# Setup bot to listen for messages in Discord channel
-'''
-# FILEPATH: /c:/Users/wico2/OneDrive/Documents/DiscordBot/bot.py
-@client.event
-async def on_message(message):
-    if message.author == client.user:
-        return
-    await message.channel.send('Message received')
-    
-    # Check if message is from a user
-    if isinstance(message.author, discord.User):
-        print('Message is from user.')
-        await channel.send('Message is from user.')
-        # Add your desired logic for responding to user messages here
-        
-    '''
-
-# Assuming queue is a list that contains the URLs of the songs in the queue
-
-
 
 async def viewqueue(ctx):
     if not queue:
@@ -79,8 +59,7 @@ async def viewqueue(ctx):
 
 
 
-# Function to play music
-
+#play music from queue
 @client.command()
 async def play_music(ctx):
     if not queue:
@@ -136,8 +115,7 @@ async def play_music(ctx):
     queue.clear()
     await voice_client.disconnect()
 
-# Command to add a track to the queue
-
+#add a track to the queue
 @client.command()
 async def add(ctx, url):
     ydl_opts = {
