@@ -7,6 +7,8 @@ from discord import FFmpegPCMAudio
 import subprocess
 import discord
 from discord.ext import commands
+from yt_dlp.utils import ExtractorError
+import re
 
 # Setup Discord bot with command prefix '!'
 intents = discord.Intents.default()
@@ -47,19 +49,43 @@ async def on_ready():
     else:
         print(f"Channel with ID {config.CHANNEL_ID} not found.")
     
+# Setup bot to listen for messages in Discord channel
+'''
+# FILEPATH: /c:/Users/wico2/OneDrive/Documents/DiscordBot/bot.py
+@client.event
+async def on_message(message):
+    if message.author == client.user:
+        return
+    await message.channel.send('Message received')
+    
+    # Check if message is from a user
+    if isinstance(message.author, discord.User):
+        print('Message is from user.')
+        await channel.send('Message is from user.')
+        # Add your desired logic for responding to user messages here
+        
+    '''
 
+# Assuming queue is a list that contains the URLs of the songs in the queue
+
+
+
+@client.command()
 async def viewqueue(ctx):
-    if not queue:
+    # Count the number of songs in the queue
+    num_songs = len(queue)
+
+    # Check if the queue is empty
+    if num_songs == 0:
         await ctx.send("The queue is currently empty.")
     else:
-        message = "Songs in the queue:\n"
-        for url in queue:
-            message += f"{url}\n"
-        await ctx.send(message)
+        # Send a message with the count of songs
+        await ctx.send(f"There are {num_songs} songs in the queue.")
 
 
 
-#play music from queue
+# Function to play music
+
 @client.command()
 async def play_music(ctx):
     if not queue:
@@ -115,30 +141,37 @@ async def play_music(ctx):
     queue.clear()
     await voice_client.disconnect()
 
-#add a track to the queue
+# Command to add a track to the queue
 @client.command()
 async def add(ctx, url):
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': 'downloads/%(title)s.%(ext)s',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'webm',
-            'preferredquality': '192',
-        }],
-        'prefer_ffmpeg': True,
-        'keepvideo': False
-    }
+    try:
+        # Check if the URL contains a playlist ID and extract it
+        playlist_id_match = re.search(r'list=([a-zA-Z0-9_-]+)', url)
+        if playlist_id_match:
+            playlist_url = f"https://www.youtube.com/playlist?list={playlist_id_match.group(1)}"
+        else:
+            playlist_url = url
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-        title = info['title']
-        url = info['webpage_url']
+        ydl_opts = {
+            'extract_flat': True,  # Extract information without downloading
+            'format': 'bestaudio/best'
+        }
 
-    # Add the track to the queue
-    queue.append({'title': title, 'url': url})
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(playlist_url, download=False)
+            if 'entries' in info:  # It's a playlist
+                num_songs_added = 0
+                for entry in info['entries']:
+                    queue.append({'title': entry['title'], 'url': entry['url']})
+                    num_songs_added += 1
+                await ctx.send(f"{num_songs_added} songs added to the queue from the playlist.")
+            else:  # It's a single video
+                title = info['title']
+                queue.append({'title': title, 'url': playlist_url})
+                await ctx.send(f"Added to queue: {title}")
 
-    await ctx.send(f"Added to queue: {title}")
+    except ExtractorError as e:
+        await ctx.send(f"An error occurred: {e}")
     
 @client.command()
 async def play(ctx, url):
@@ -194,7 +227,9 @@ async def pause(ctx):
     if voice_client is None or not voice_client.is_playing():
         await ctx.send("No audio is currently playing.")
         return
-    voice_client.pause()
+    else:
+        voice_client.pause()
+        await ctx.send('Audio has been paused')
 
 # Command to resume the paused track
 @client.command()
@@ -203,7 +238,9 @@ async def resume(ctx):
     if voice_client is None or not voice_client.is_paused():
         await ctx.send("No audio is currently paused.")
         return
-    voice_client.resume()
+    else:
+        voice_client.resume()
+        await ctx.send('Audio is resuming')
 
 # Command to skip the currently playing track
 @client.command()
