@@ -38,7 +38,7 @@ BOT_TOKEN = config.BOT_TOKEN #Get bot token from config.py
 queue = []
 
 
-# Setup bot to chat in Discord channel
+# Setup bot to chat in Discord channel 11
 @client.event
 async def on_ready():
     global channel
