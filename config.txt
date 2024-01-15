@@ -1,4 +1,0 @@
-pip install boto3
-pip install discord
-pip install youtube_dl
-#install ffmpeg
