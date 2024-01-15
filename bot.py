@@ -123,10 +123,12 @@ async def play_music(ctx):
                      return
                 url = formats[0]['url']
 
-            source = discord.FFmpegPCMAudio(executable=config.FFMPEG_EXECUTABLE_PATH, source=url, 
-                                            before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 
-                                            options='-vn')
+                source = discord.FFmpegPCMAudio(executable=config.FFMPEG_EXECUTABLE_PATH, source=url, 
+                                before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 
+                                options='-vn -bufsize 64k -probesize 32k -analyzeduration 0')
+
             voice_client.play(source, after=lambda e: print('Player error: %s' % e) if e else print('Playback finished successfully.'))
+            await client.change_presence(activity=discord.Game(name=f"Playing: {track['title']}"))
             await ctx.send(f"Now playing: {track['title']}")
 
             # Wait for the track to finish playing
@@ -205,10 +207,11 @@ async def play(ctx, url):
     # Use the URL of the first audio format
     url = formats[0]['url']
 
-    # Create the audio source without the FFmpeg options
+    # Create the audio source without the FFmpeg options    
     source = discord.FFmpegPCMAudio(executable=config.FFMPEG_EXECUTABLE_PATH, source=url, 
-                                        before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 
-                                        options='-vn')
+                                before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 
+                                options='-vn -bufsize 64k -probesize 32k -analyzeduration 0')
+
 
 
     voice_client.play(source, after=lambda e: print('Player error: %s' % e) if e else print('Playback finished successfully.'))
@@ -259,7 +262,9 @@ async def stop(ctx):
         await ctx.send("No audio is currently playing.")
         return
     voice_client.stop()
-    queue.clear()
+ 
+#command to clear the queue    
+    
 
 
 # Error handler for play command
