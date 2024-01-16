@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-import config
+#import config
 import yt_dlp
 import asyncio
 from discord import FFmpegPCMAudio
@@ -8,16 +8,19 @@ import subprocess
 import discord
 from discord.ext import commands
 from yt_dlp.utils import ExtractorError
+import os
 import re
 
 # Setup Discord bot with command prefix '!'
+CHANNEL_ID = 1192590547454546043
+FFMPEG_EXECUTABLE_PATH = "ffmpeg"
 intents = discord.Intents.default()
 intents.messages = True
 intents.guilds = True
 intents.message_content = True  # Add this line
 client = commands.Bot(command_prefix='!', intents=intents) #Replace with your desired command prefix for the bot answer
-channel = client.get_channel(config.CHANNEL_ID) #Get channel ID from config.py
-BOT_TOKEN = config.BOT_TOKEN #Get bot token from config.py
+channel = client.get_channel(CHANNEL_ID) #Get channel ID from config.py
+BOT_TOKEN = os.getenv('BOT_TOKEN') #Get bot token from config.py
 
 # !play <url>: Connects the bot to the voice channel that the command author is in, 
 # downloads the audio from the YouTube video at <url>, and starts playing it in the voice channel.
@@ -42,12 +45,12 @@ queue = []
 @client.event
 async def on_ready():
     global channel
-    channel = client.get_channel(config.CHANNEL_ID)
+    channel = client.get_channel(CHANNEL_ID)
     print('Bot is ready.')
     if channel:
         await channel.send('Bot is ready.')
     else:
-        print(f"Channel with ID {config.CHANNEL_ID} not found.")
+        print(f"Channel with ID {CHANNEL_ID} not found.")
     
 # Assuming queue is a list that contains the URLs of the songs in the queue
 @client.command()
@@ -103,9 +106,9 @@ async def play_music(ctx):
                      return
                 url = formats[0]['url']
 
-                source = discord.FFmpegPCMAudio(executable=config.FFMPEG_EXECUTABLE_PATH, source=url, 
+                source = discord.FFmpegPCMAudio(executable=FFMPEG_EXECUTABLE_PATH, source=url, 
                                 before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 
-                                options='-vn -bufsize 64k -probesize 32k -analyzeduration 0')
+                                options='-vn -bufsize 128k -probesize 32k -analyzeduration 0')
 
             voice_client.play(source, after=lambda e: print('Player error: %s' % e) if e else print('Playback finished successfully.'))
             await client.change_presence(activity=discord.Game(name=f"Playing: {track['title']}"))
@@ -188,7 +191,7 @@ async def play(ctx, url):
     url = formats[0]['url']
 
     # Create the audio source without the FFmpeg options    
-    source = discord.FFmpegPCMAudio(executable=config.FFMPEG_EXECUTABLE_PATH, source=url, 
+    source = discord.FFmpegPCMAudio(executable=FFMPEG_EXECUTABLE_PATH, source=url, 
                                 before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 
                                 options='-vn -bufsize 64k -probesize 32k -analyzeduration 0')
 
@@ -283,4 +286,4 @@ async def stop_error(ctx, error):
 
 
 # Run the bot
-client.run(config.BOT_TOKEN)
+client.run(BOT_TOKEN)
