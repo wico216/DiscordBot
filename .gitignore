@@ -3,6 +3,7 @@ config.txt
 config.py
 ffmpeg_log.txt
 ffmpeg.exe
+.dockerignore
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
