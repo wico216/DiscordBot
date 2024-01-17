@@ -1,0 +1,57 @@
+# Configuration and sensitive files
+config.txt
+config.py
+
+# FFmpeg binaries and logs
+ffmpeg_log.txt
+ffmpeg.exe
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+
+# Python C extensions
+*.so
+
+# Distribution / packaging directories
+bin/
+build/
+develop-eggs/
+dist/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Testing and coverage reports
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+
+# Translations
+*.mo
+
+# IDE and Editor specific files
+.mr.developer.cfg
+.project
+.pydevproject
+.ropeproject
+.vscode
+.idea
+
+# Django logs
+*.log
+
+# Sphinx documentation
+docs/_build/

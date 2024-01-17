@@ -6,7 +6,6 @@ RUN apt-get -y update
 RUN apt-get install ffmpeg libsm6 libxext6  -y
 # Set the working directory to /app
 WORKDIR /app
-
 # Copy the current directory contents into the container at /app
 COPY . /app
 

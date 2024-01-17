@@ -21,27 +21,9 @@ intents.message_content = True  # Add this line
 client = commands.Bot(command_prefix='!', intents=intents) #Replace with your desired command prefix for the bot answer
 channel = client.get_channel(CHANNEL_ID) #Get channel ID from config.py
 BOT_TOKEN = os.getenv('BOT_TOKEN') #Get bot token from config.py
+queue = [] #Queue for songs
 
-# !play <url>: Connects the bot to the voice channel that the command author is in, 
-# downloads the audio from the YouTube video at <url>, and starts playing it in the voice channel.
-
-# !queue <url>: Adds the audio from the YouTube video at <url> to the queue. 
-# The audio will be played after the current song finishes.
-
-# !pause: Pauses the audio playback.
-
-# !resume: Resumes the audio playback.
-
-# !stop: Stops the audio playback and disconnects the bot from the voice channel.
-
-# !skip: Skips the current song and plays the next song in the queue.
-
-# !viewqueue: Shows the list of songs in the queue.
-# Queue to store the music tracks
-queue = []
-
-
-# Setup bot to chat in Discord channel 11
+# Setup bot to chat in Discord channel when it is ready
 @client.event
 async def on_ready():
     global channel
@@ -52,7 +34,8 @@ async def on_ready():
     else:
         print(f"Channel with ID {CHANNEL_ID} not found.")
     
-# Assuming queue is a list that contains the URLs of the songs in the queue
+    
+# Command to view the queue
 @client.command()
 async def viewqueue(ctx):
     # Count the number of songs in the queue
@@ -66,9 +49,7 @@ async def viewqueue(ctx):
         await ctx.send(f"There are {num_songs} songs in the queue.")
 
 
-
-# Function to play music
-
+# Command to play the music in the queue
 @client.command()
 async def play_music(ctx):
     if not queue:
@@ -126,6 +107,7 @@ async def play_music(ctx):
     queue.clear()
     await voice_client.disconnect()
 
+
 # Command to add a track to the queue
 @client.command()
 async def add(ctx, url):
@@ -158,6 +140,8 @@ async def add(ctx, url):
     except ExtractorError as e:
         await ctx.send(f"An error occurred: {e}")
     
+
+# Command to play a track    
 @client.command()
 async def play(ctx, url):
     if ctx.author.voice is None:
@@ -217,6 +201,7 @@ async def pause(ctx):
         voice_client.pause()
         await ctx.send('Audio has been paused')
 
+
 # Command to resume the paused track
 @client.command()
 async def resume(ctx):
@@ -228,6 +213,7 @@ async def resume(ctx):
         voice_client.resume()
         await ctx.send('Audio is resuming')
 
+
 # Command to skip the currently playing track
 @client.command()
 async def skip(ctx):
@@ -236,6 +222,7 @@ async def skip(ctx):
         await ctx.send("No audio is currently playing.")
         return
     voice_client.stop()
+
 
 # Command to stop playing music and clear the queue
 @client.command()
@@ -256,12 +243,14 @@ async def play_error(ctx, error):
         await ctx.send("An error occurred while playing the audio.")
         await ctx.send(f"An error occurred: {str(error)}")
 
+
 # Error handler for pause command
 @pause.error
 async def pause_error(ctx, error):
     if isinstance(error, commands.CommandInvokeError):
         await ctx.send("An error occurred while pausing the audio.")
         await ctx.send(f"An error occurred: {str(error)}")
+
 
 # Error handler for resume command
 @resume.error
@@ -270,6 +259,7 @@ async def resume_error(ctx, error):
         await ctx.send("An error occurred while resuming the audio.")
         await ctx.send(f"An error occurred: {str(error)}")
 
+
 # Error handler for skip command
 @skip.error
 async def skip_error(ctx, error):
@@ -277,13 +267,13 @@ async def skip_error(ctx, error):
         await ctx.send("An error occurred while skipping the audio.")
         await ctx.send(f"An error occurred: {str(error)}")
 
+
 # Error handler for stop command
 @stop.error
 async def stop_error(ctx, error):
     if isinstance(error, commands.CommandInvokeError):
         await ctx.send("An error occurred while stopping the audio.")
         await ctx.send(f"An error occurred: {str(error)}")
-
 
 # Run the bot
 client.run(BOT_TOKEN)
