@@ -1,6 +1,7 @@
 # Configuration and sensitive files
 config.txt
 config.py
+.env
 
 # FFmpeg binaries and logs
 ffmpeg_log.txt
