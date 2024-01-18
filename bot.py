@@ -8,7 +8,7 @@ load_dotenv()
 
 channel_id = 1192590547454546043
 BOT_TOKEN=os.getenv("BOT_TOKEN")
-client = commands.Bot(command_prefix = '.', intents = discord.Intents.all())
+client = commands.Bot(command_prefix = '/', intents = discord.Intents.all())
 
 
 
@@ -16,8 +16,8 @@ client = commands.Bot(command_prefix = '.', intents = discord.Intents.all())
 async def on_ready():
     global channel
     channel = client.get_channel(channel_id)
-    await client.tree.sync()
     print('Bot is ready.')
+    await client.tree.sync()
     if channel:
         await channel.send('Bot is ready.')
     else:
