@@ -7,8 +7,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 channel_id = 1192590547454546043
+app_id = 1192578363806732400
+guild_id = 293111337431859201
 BOT_TOKEN=os.getenv("BOT_TOKEN")
-client = commands.Bot(command_prefix = '/', intents = discord.Intents.all())
+client = commands.Bot(command_prefix = '!', intents = discord.Intents.all())
 
 
 
@@ -17,7 +19,10 @@ async def on_ready():
     global channel
     channel = client.get_channel(channel_id)
     print('Bot is ready.')
-    await client.tree.sync()
+    guild = client.get_guild(guild_id)
+    if guild:
+        await client.tree.sync(guild=guild)
+    
     if channel:
         await channel.send('Bot is ready.')
     else:
