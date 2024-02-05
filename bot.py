@@ -231,7 +231,7 @@ async def stop(ctx):
     if voice_client is None or not voice_client.is_playing():
         await ctx.send("No audio is currently playing.")
         return
-    voice_client.stop()
+    voice_client.disconnect()
 
 
 # Error handler for play command
